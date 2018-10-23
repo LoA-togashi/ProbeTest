@@ -1,8 +1,7 @@
-require("xmlhttprequest");
-
 import {ProbeData} from './ProbeData';
 import {XMLHttpRequest} from 'xmlhttprequest';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 
 export class ProbePromise{
 
@@ -18,7 +17,7 @@ export class ProbePromise{
         let elems = line.split(',');
       
         let time = elems[0];
-        let mac = elems[1];
+        let mac = this.hash.update(elems[1]);
         let rssi = Number(elems[2]);
         let id = 0;
 
@@ -104,16 +103,23 @@ export class ProbePromise{
                   let elems = line.split(',');
       
                   let time = elems[0];
-                  let mac = elems[1];
+
+                  let hash = crypto.createHash('sha512');
+                  hash.update(elems[1]);
+                  let mac = hash.digest('base64');
+
                   let rssi = Number(elems[2]);
                   let id = 0;
 
                   let data = new ProbeData(id, mac, time, rssi);
                   darr.push(data);
+                  //this.probeArray.push(data);
                 }
               }
 
               console.log(darr);
+           }).catch( function(err){
+              console.log(err);
            });
   }
 

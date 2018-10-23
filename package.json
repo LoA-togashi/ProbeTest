@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@types/node": "^10.11.7",
+    "bcrypt": "^3.0.2",
     "filereader": "^0.10.3"
   }
 }

@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-require("xmlhttprequest");
 const ProbeData_1 = require("./ProbeData");
 const xmlhttprequest_1 = require("xmlhttprequest");
 const fs = require("fs");
+const crypto = require("crypto");
 class ProbePromise {
     constructor() {
     }
@@ -14,7 +14,7 @@ class ProbePromise {
             let elems = line.split(',');
           
             let time = elems[0];
-            let mac = elems[1];
+            let mac = this.hash.update(elems[1]);
             let rssi = Number(elems[2]);
             let id = 0;
     
@@ -85,15 +85,19 @@ class ProbePromise {
                 for (let line of ret) {
                     let elems = line.split(',');
                     let time = elems[0];
-                    let mac = elems[1];
+                    let hash = crypto.createHash('sha512');
+                    hash.update(elems[1]);
+                    let mac = hash.digest('base64');
                     let rssi = Number(elems[2]);
                     let id = 0;
                     let data = new ProbeData_1.ProbeData(id, mac, time, rssi);
                     darr.push(data);
-                    this.probeArray(data);
+                    //this.probeArray.push(data);
                 }
             }
             console.log(darr);
+        }).catch(function (err) {
+            console.log(err);
         });
     }
     searchProbe(mac) {
