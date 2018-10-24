@@ -27,7 +27,7 @@ export class ProbePromise{
   storeProbeData( data:ProbeData[] ){
   }
 
-  getProbeHtml = function(url : string):Promise<XMLHttpRequest.responseText>{
+  getProbeHtml(url : string):Promise<XMLHttpRequest.responseText>{
     return new Promise( function(resolve,reject) {
 
       console.log("url : " + url);
@@ -57,7 +57,7 @@ export class ProbePromise{
     });
   }
 
-  getProbeFile = function( fname:string ): Promise<Buffer>{
+  getProbeFile( fname:string ): Promise<Buffer>{
       
     return new Promise( function(resolve,reject) {
 
@@ -92,10 +92,10 @@ export class ProbePromise{
                    let lines = result.toString().split("\n");
                    for(let line of lines){
                      if(line.length > 0){
-//                     console.log("return : " + line);
+                     console.log("return : " + line);
                        ret.push(line);
                      }
-//                     console.log("----------");
+                     console.log("----------");
                    }
                  }
              }).then( function(){ 
@@ -105,18 +105,24 @@ export class ProbePromise{
                   for(let line of ret){
                     let elems = line.split(',');
       
-                    let time = elems[0];
+                    if(elems.length == 3){
+                      let time = elems[0];
 
-                    let hash = crypto.createHash('sha512');
-                    hash.update(elems[1]);
-                    let mac_hash = hash.digest('base64');
+                      let hash = crypto.createHash('sha512');
+                      hash.update(elems[1]);
+                      let mac_hash = hash.digest('base64');
 
-                    let rssi = Number(elems[2]);
-                    let id = 0;
+                      let rssi = Number(elems[2]);
+                      let id = 0;
 
-                    let data = new ProbeData(id, mac_hash, time, rssi);
-                    darr.push(data);
+                      let data = new ProbeData(id, mac_hash, time, rssi);
+
+
+                      darr.push(data);
+                    }
+
                   }
+
                 }
                 return darr;
 
@@ -134,6 +140,7 @@ export class ProbePromise{
                            console.log(err);
                          });
 */
+
                resolve(darr);
            }).catch( function(err){
               console.log(err);
@@ -143,7 +150,20 @@ export class ProbePromise{
      });
   }
 
-  searchProbe( mac:string ): Promise<ProbeData[]>{
+  dataArrToPrbArr( dataArray:[] ):ProbeData[]{
+    let probeData = [];
+
+    for(let data of dataArray){
+      let pd = new ProbeData(data["nodeId"], data["mac_hash"], data["timestamp"], data["rssi"]);
+      probeData.push(pd);
+    }
+
+    return probeData;
+  }
+
+  searchProbeMac( mac:string ): Promise<ProbeData[]>{
+    let dataArrToPrbArr = this.dataArrToPrbArr;
+
     return new Promise( function(resolve, reject){
       let hash = crypto.createHash('sha512');
       hash.update(mac);
@@ -156,14 +176,13 @@ export class ProbePromise{
                    //console.log("connected to server");
                    let db = client.db("ProbeData");
                      
-                   let probeData = db.collection("data1")
+                   let dataArray = db.collection("data1")
                                      .find({mac_hash: mac_hash})
                                      .toArray();
                    client.close();
-                   return probeData;
-                  }).then( function (probeData){
-                    //console.log(probeData);
-                    resolve(probeData);
+                   return dataArray;
+                  }).then( function (dataArray){
+                    resolve( dataArrToPrbArr(dataArray) );
                   }).catch(function (err){
                     console.log(err);
                     reject(err);
@@ -172,23 +191,24 @@ export class ProbePromise{
     });
   }
 
-  searchProbeDuration( from: string, to: string):Promise<ProbeData[]>{
-    return new Promise( function(resolve, reject){
+  searchProbeDuration( from: Date, to: Date):Promise<ProbeData[]>{
+    let dataArrToPrbArr = this.dataArrToPrbArr;
 
+    return new Promise( function(resolve, reject){
       MongoClient.connect("mongodb://localhost:27017/ProbeData", 
                            { useNewUrlParser: true  } )
                  .then( function (client){
                    //console.log("connected to server");
                    let db = client.db("ProbeData");
                      
-                   let probeData = db.collection("data1")
+                   let dataArray = db.collection("data1")
                                      .find({ timestamp: {"$gt":from, "$lt": to} })
                                      .toArray();
+                   console.log(from.toISOString() + " ; " + to.toISOString());
                    client.close();
-                   return probeData;
-                  }).then( function (probeData){
-                    //console.log(probeData);
-                    resolve(probeData);
+                   return dataArray;
+                  }).then( function (dataArray){
+                    resolve( dataArrToPrbArr(dataArray) );
                   }).catch(function (err){
                     console.log(err);
                     reject(err);
